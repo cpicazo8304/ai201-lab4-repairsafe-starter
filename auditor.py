@@ -1,34 +1,46 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from config import LOG_FILE
+import config
 
 
 def log_interaction(question: str, tier: str, response: str) -> None:
+    """Append a structured record of this interaction to the audit log.
+
+    Writes a single JSON object per line to `LOG_FILE` and prints a
+    one-line terminal summary. Creates the logs directory if missing and
+    gracefully handles write errors by falling back to console output.
     """
-    Append a structured record of this interaction to the audit log.
+    timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    q_trunc = question[:300]
+    resp_preview = response[:200]
 
-    TODO — Milestone 3:
+    entry = {
+      "timestamp": timestamp,
+      "tier": tier,
+      "question": q_trunc,
+      "response_preview": resp_preview,
+      "response_length": len(response),
+      "question_length": len(question),
+      "model_version": getattr(config, "MODEL_VERSION", "unknown"),
+    }
 
-    Before writing any code, complete specs/auditor-spec.md. The key decisions
-    are what fields to log, how much of the question and response to include,
-    and how to handle the logs/ directory not existing yet.
+    # Ensure log directory exists (if any)
+    dirpath = os.path.dirname(LOG_FILE)
+    if dirpath:
+      try:
+        os.makedirs(dirpath, exist_ok=True)
+      except OSError:
+        print(f"[AUDIT ERROR] could not create log directory: {dirpath}")
 
-    Each record should be a JSON object written as a single line to LOG_FILE
-    (defined in config.py as "logs/audit.jsonl").
+    # Append JSON line to the logfile
+    try:
+      with open(LOG_FILE, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except (OSError, IOError) as e:
+      print(f"[AUDIT ERROR] failed to write audit log: {e}")
 
-    Required fields:
-      - "timestamp"        : ISO 8601 datetime string
-      - "tier"             : the safety tier assigned to this question
-      - "question"         : the user's question (truncate to 300 chars if longer)
-      - "response_preview" : first 200 characters of the response
-
-    If the logs/ directory doesn't exist, create it before writing.
-
-    Also print a one-line summary to the terminal so you can see logged
-    interactions in real time without opening the file:
-      e.g. [LOGGED] tier=caution | "How do I replace a faucet?" → 47 chars
-
-    Design your log entry in specs/auditor-spec.md before implementing here.
-    """
-    pass
+    # One-line console summary
+    single_line_preview = resp_preview.replace("\n", " ")
+    print(f"[LOGGED] tier={tier} | \"{single_line_preview}\" → {len(response)} chars")

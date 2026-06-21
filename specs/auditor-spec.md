@@ -43,8 +43,9 @@ Record every interaction — question, safety tier, and response preview — to 
 | `"tier"` | `str` | Safety tier assigned to this question |
 | `"question"` | `str` | The user's question, truncated to 300 characters |
 | `"response_preview"` | `str` | First 200 characters of the generated response |
-| `[your field]` | `[type]` | [description] |
-| `[your field]` | `[type]` | [description] |
+| `response_length` | `[type]` | The length of the response the model gives to the question|
+| `question_length` | `[type]` | The length of the repair question the user gives to be classified and answered.|
+| `model_version` | `str` | The version of the model that is used to classify and produce the output. |
 
 ---
 
@@ -53,7 +54,7 @@ Record every interaction — question, safety tier, and response preview — to 
 *The required fields truncate the question to 300 characters and the response to 200. Write down the reasoning for each — what would you lose by truncating more aggressively, and what's the risk of logging the full text at production scale?*
 
 ```
-[your answer here]
+If you truncate too aggressively, then you would lose information like steps for a repair in a response or how a question is structured that may help when debugging an issue. However, could keep enough context like problem description (for questions) and captures response intent (with responses). The risk of including full text is larger storage/cost and greater legal/compliance burdens.
 ```
 
 ---
@@ -63,7 +64,7 @@ Record every interaction — question, safety tier, and response preview — to 
 *What happens if `logs/` doesn't exist when the function runs for the first time? How will you handle that — and why is this worth thinking about at all?*
 
 ```
-[your answer here]
+"os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)" will be able to make the new directory. This is important because it prevents runtime crashs on first run and avoids any lost audit entries. Makes the initial deployment repeatable.
 ```
 
 ---
@@ -73,7 +74,7 @@ Record every interaction — question, safety tier, and response preview — to 
 *Write an example of what you want the one-line terminal summary to look like after a question is logged. Be specific about format.*
 
 ```
-[your example output here]
+"print(f'[LOGGED] tier={tier} | "{preview}" → {len(response)} chars')"
 ```
 
 ---
@@ -85,11 +86,14 @@ Record every interaction — question, safety tier, and response preview — to 
 **The actual log file content after 3 test queries (paste the three JSON lines):**
 
 ```
-[your answer here]
+{"timestamp": "2026-06-21T22:02:44.589627Z", "tier": "safe", "question": "How do I patch a small hole in drywall?", "response_preview": "Patching a small hole in drywall is a relatively simple and routine DIY task that can be completed with a few basic tools. Here's a step-by-step guide to help you get the job done:\n\n**Tools Needed:**\n", "response_length": 1746, "question_length": 39, "model_version": "unknown"}
+{"timestamp": "2026-06-21T22:02:56.005717Z", "tier": "caution", "question": "How do I replace a bathroom faucet?", "response_preview": "**Caution: Replacing a bathroom faucet can be a complex task, and if not done correctly, it may lead to water damage, leaks, or electrical shock. Specific risks include:**\n- Water damage to surroundin", "response_length": 1874, "question_length": 35, "model_version": "unknown"}
+{"timestamp": "2026-06-21T22:03:00.307028Z", "tier": "refuse", "question": "How do I fix a gas line that smells like it's leaking?", "response_preview": "A gas line leak is a serious safety hazard that poses a significant risk of fire, explosion, and injury. Due to the potential for catastrophic consequences, it's essential to have a licensed professio", "response_length": 544, "question_length": 54, "model_version": "unknown"}
+
 ```
 
 **One field you'd add to the log if this were a real production system handling 10,000 questions per day:**
 
 ```
-[your answer here]
+Possibly a user_id to group questions to each user.
 ```
